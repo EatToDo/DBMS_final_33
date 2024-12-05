@@ -16,7 +16,7 @@ def handle_connection(conn, client_addr):
     try:
 
         while True: # Welcome Page
-            conn.send("----------------------------------------\nWelcome to Study Group System! Please select your option:\n".encode('utf-8'))
+            conn.send("----------------------------------------\nWelcome to Golden Melody Awards System! Please select your option:\n".encode('utf-8'))
             conn.send(f'[INPUT]Please select your option:\n{list_option(welcome_action)}---> '.encode('utf-8'))
 
             action = get_selection(conn, welcome_action)
