@@ -40,6 +40,7 @@ def print_table(cur):
 
     return tabulate(rows, headers=columns, tablefmt="github")
 
+
 # ============================= System function =============================
 def db_register_user(username, pwd, gender, bdate):
     try:
@@ -107,3 +108,22 @@ def userid_exist(userid):
     cur.execute(cmd, [userid])
     count = cur.fetchone()[0]
     return count > 0
+
+
+# ============================= function for User =============================
+def update_user_info(userid, item, new_value):
+    try:
+        cmd =  f"""
+                update "users"
+                set {item} = %s
+                where user_id = %s;
+                """
+        print(f'Update User Info | {userid}: {item}->{new_value}')
+        cur.execute(cmd, [new_value, userid])
+        print(f'After update')
+        db.commit()
+        return
+    except Exception as e:
+        db.rollback()  # 如果發生錯誤，回滾事務
+        print(f"Error updating user info: {e}")
+        raise
