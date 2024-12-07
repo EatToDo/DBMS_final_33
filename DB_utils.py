@@ -223,3 +223,46 @@ def vote(userid, artist, cid):
         print(f"Error in record_vote: {e}")
         db.rollback()
         raise
+
+def list_vote_today(user_id):
+    cmd = """
+        SELECT a.name AS the_artists_you_chose_today, vote_timestamp, status
+        FROM "popular_singer_votes" AS v
+        JOIN "artists" AS a ON v.artist_id = a.artist_id
+        WHERE v.user_id = %s AND DATE(v.vote_timestamp) = CURRENT_DATE;
+        """
+
+    cur.execute(cmd, [user_id])
+    return print_table(cur)
+
+def list_validvote_today(user_id):
+    cmd = """
+        SELECT a.name AS the_artists_you_chose_today, vote_timestamp, status
+        FROM "popular_singer_votes" AS v
+        JOIN "artists" AS a ON v.artist_id = a.artist_id
+        WHERE v.user_id = %s AND DATE(v.vote_timestamp) = CURRENT_DATE AND status = '有效';
+        """
+
+    cur.execute(cmd, [user_id])
+    return print_table(cur)
+
+def delete_vote(user_id, ceremony_id):
+    cmd = """
+        UPDATE "popular_singer_votes"
+        SET status = '已刪除'
+        WHERE user_id = %s AND ceremony_id = %s AND DATE(vote_timestamp) = CURRENT_DATE;
+        """
+    cur.execute(cmd, [user_id, ceremony_id])
+    db.commit()
+
+def list_vote(user_id):
+    cmd = """
+        SELECT a.name AS the_artists_you_chose, ceremony_id, DATE(vote_timestamp) AS vote_date, status
+        FROM "popular_singer_votes" AS v
+        JOIN "artists" AS a ON v.artist_id = a.artist_id
+        WHERE v.user_id = %s AND status = '有效'
+        ORDER BY vote_timestamp DESC;
+        """
+
+    cur.execute(cmd, [user_id])
+    return print_table(cur)
