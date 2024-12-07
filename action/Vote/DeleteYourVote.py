@@ -1,4 +1,4 @@
-from .Action import Action
+from ..Action import Action
 from DB_utils import list_validvote_today, delete_vote, get_max_ceremony_id
 
 

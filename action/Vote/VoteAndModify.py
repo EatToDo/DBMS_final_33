@@ -1,4 +1,4 @@
-from .Action import Action
+from ..Action import Action
 from DB_utils import get_max_ceremony_id, list_nominated, vote, list_vote_today
 
 class VoteAndModify(Action):
@@ -12,7 +12,7 @@ class VoteAndModify(Action):
         return f"{ceremony_id}{suffix}"
 
     def exec(self, conn, user):
-        print("VoteAndModify")
+        # print("VoteAndModify")
         userid = user.get_userid()
         conn.send("Welcome to the voting system!\n".encode('utf-8'))
 
