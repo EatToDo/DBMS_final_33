@@ -40,6 +40,25 @@ def print_table(cur):
 
     return tabulate(rows, headers=columns, tablefmt="github")
 
+def print_table_with_no(cur, visible_columns=None):
+    rows = cur.fetchall()
+    columns = [desc[0] for desc in cur.description]
+
+    table = [(idx, *row) for idx, row in enumerate(rows, start=1)]
+
+    if visible_columns is None:
+        visible_columns = columns
+
+    visible_indexes = [columns.index(col) + 1 for col in visible_columns]
+
+    filtered_table = [
+        (row[0], *(row[i] for i in visible_indexes)) for row in table
+    ]
+
+    headers = ["No."] + visible_columns
+    formatted_table = tabulate(filtered_table, headers=headers, tablefmt="github")
+
+    return table, formatted_table
 
 # ============================= System function =============================
 def db_register_user(username, pwd, gender, bdate):
@@ -320,3 +339,52 @@ def list_comment(performance_id):
 
     cur.execute(cmd, [performance_id])
     return print_table(cur)
+
+def list_your_comment(user_id):
+    cmd = """
+        SELECT pc.comment_id, p.performance_name, pc.comment_text
+        FROM performance_comments AS pc
+        JOIN performance AS p ON pc.performance_id = p.performance_id
+        WHERE pc.user_id = %s AND status = '有效';
+    """
+
+    cur.execute(cmd, [user_id])
+    return print_table_with_no(cur)
+
+def update_comment(comment_id, user_id, comment_text):
+    try:
+        cmd_updata = """
+            UPDATE performance_comments
+            SET status = '已刪除'
+            WHERE comment_id = %s
+            RETURNING performance_id;
+        """
+        cur.execute(cmd_updata, [comment_id])
+        performance_id = cur.fetchone()[0]
+
+        cmd_insert = """
+                INSERT INTO performance_comments(performance_id, user_id, comment_text, comment_timestamp, status)
+                VALUES (%s, %s, %s, NOW(), '有效');
+        """
+        cur.execute(cmd_insert, [performance_id, user_id, comment_text])
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error occurred: {e}")
+        raise
+
+def delete_comment(comment_id):
+    try:
+        cmd = """
+                UPDATE performance_comments
+                SET status = '已刪除'
+                WHERE comment_id = %s;
+        """
+        cur.execute(cmd, [comment_id])
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        print(f"Error occurred while deleting comment: {e}")
+        raise
