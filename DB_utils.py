@@ -266,3 +266,57 @@ def list_vote(user_id):
 
     cur.execute(cmd, [user_id])
     return print_table(cur)
+
+def fetch_all_ceremony():
+    cmd = """
+        SELECT DISTINCT ceremony_id FROM performance;
+    """
+
+    cur.execute(cmd)
+    results = cur.fetchall()
+    return [row[0] for row in results]
+
+def fetch_performance_ceremony(ceremony_id):
+    cmd = """
+        SELECT a.name AS artist_name, p.performance_name
+        FROM performance AS p
+        JOIN performance_artists AS pa ON p.performance_id = pa.performance_id
+        JOIN artists AS a ON pa.artist_id = a.artist_id
+        WHERE p.ceremony_id = %s;
+    """
+
+    cur.execute(cmd, [ceremony_id])
+    results = cur.fetchall()
+    return [(row[0], row[1]) for row in results]
+
+def get_performance_id(ceremony_id, performance_name):
+    cmd = """
+        SELECT performance_id
+        FROM performance
+        WHERE ceremony_id = %s AND performance_name = %s;
+    """
+    cur.execute(cmd, [ceremony_id, performance_name])
+    results = cur.fetchone()
+
+    return results[0]
+
+def comment(performance_id, userid, comment_text):
+    cmd = """
+        INSERT INTO performance_comments(performance_id, user_id, comment_text, comment_timestamp, status)
+        VALUES (%s, %s, %s, NOW(), '有效');
+    """
+
+    cur.execute(cmd, [performance_id, userid, comment_text])
+    db.commit()
+    print("Comment recorded successfully.")
+
+def list_comment(performance_id):
+    cmd ="""
+        SELECT u.username, pc.comment_text
+        FROM performance_comments AS pc
+        JOIN users AS u ON pc.user_id = u.user_id
+        WHERE pc.performance_id = %s;
+    """
+
+    cur.execute(cmd, [performance_id])
+    return print_table(cur)

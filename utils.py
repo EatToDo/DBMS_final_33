@@ -44,9 +44,11 @@ def list_option(options):
             msg = msg + f'[{idx}] {option.get_name()}\n'
     elif isinstance(options, list):
         for idx, option in enumerate(options, 1):
-            if hasattr(option, 'get_name'): # Action class
+            if isinstance(option, tuple) and len(option) == 2:
+                msg += f"[{idx}] Artist: {option[0]}, Performance: {option[1]}\n"
+            elif hasattr(option, 'get_name'):  # Action class
                 msg += f'[{idx}] {option.get_name()}\n'
-            else: # User info item
+            else:  # User info item
                 msg += f'[{idx}] {option}\n'
 
 

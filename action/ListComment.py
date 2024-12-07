@@ -1,8 +1,8 @@
 from .Action import Action
-from DB_utils import fetch_all_ceremony, fetch_performance_ceremony, get_performance_id, comment
+from DB_utils import fetch_all_ceremony, fetch_performance_ceremony, get_performance_id, list_comment
 from utils import list_option, get_selection
 
-class Comment(Action):
+class ListComment(Action):
     def __init__(self, action_name):
         super().__init__(action_name)
         self.option = fetch_all_ceremony()
@@ -15,7 +15,7 @@ class Comment(Action):
         return f"{ceremony_id}{suffix}"
 
     def exec(self, conn, user):
-        print("Comment")
+        print("ListComment")
         userid = user.get_userid()
         conn.send("Welcome to the comment system!\n".encode('utf-8'))
 
@@ -34,8 +34,7 @@ class Comment(Action):
         conn.send(f"The artist you selected: {artist_name}.The performance you selected : {performance_name}\n".encode('utf-8'))
 
         performance_id = get_performance_id(ceremony_id, performance_name)
-        c = self.read_input(conn, 'your comment')
-        comment(performance_id, userid, c)
-        conn.send(f"Your comment: {c} recorded successfully!\n".encode('utf-8'))
-        return
+        table_comment = list_comment(performance_id)
 
+        self.send_table(conn, table_comment)
+        return
