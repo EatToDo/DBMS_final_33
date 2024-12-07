@@ -1,4 +1,4 @@
-from .Action import Action
+from ..Action import Action
 from DB_utils import list_your_comment, update_comment, delete_comment
 from utils import list_option, get_selection
 from tabulate import tabulate
