@@ -284,6 +284,19 @@ def list_vote(user_id):
         """
 
     cur.execute(cmd, [user_id])
+    return print_table_with_no(cur)
+
+def list_ceremony_vote(ceremony_id):
+    cmd = """
+        SELECT a.name, COUNT(*) AS total_votes
+        FROM popular_singer_votes AS v
+        JOIN artists AS a ON v.artist_id = a.artist_id
+        WHERE ceremony_id = %s AND status = '有效'
+        GROUP BY a.name
+        ORDER BY total_votes DESC;
+    """
+
+    cur.execute(cmd, [ceremony_id])
     return print_table(cur)
 
 def fetch_all_ceremony():
@@ -388,3 +401,73 @@ def delete_comment(comment_id):
         db.rollback()
         print(f"Error occurred while deleting comment: {e}")
         raise
+
+def search(category, type, name, award, ceremony):
+    category_1 = category[:-1]
+    if category == 'artists':
+        query = f"""
+            SELECT name, ceremony_id AS ceremony, nomination_name, a.gender AS {category_1}_gender, a.bdate AS {category_1}_birthday
+            FROM {category}_nomination AS an
+            JOIN {category} AS a ON an.{category_1}_id = a.{category_1}_id\n
+        """
+        if type == 'awards':
+            query += "JOIN artists_awards AS aa ON an.nomination_id = aa.nomination_id\n"
+        query += "WHERE "
+
+        count = 0
+        if name != "None":
+            count += 1
+            query += f"name LIKE '%{name}%'"
+        if award != "None":
+            if count != 0:
+                query += " AND "
+            count += 1
+            query += f"nomination_name LIKE '%{award}%'"
+        if ceremony != "None":
+            if count != 0:
+                query += " AND "
+            count += 1
+            query += f"ceremony_id = {ceremony}"
+
+    else:
+        if category == 'albums':
+            query = f"""
+                SELECT s.title AS album_name, sn.ceremony_id AS ceremony, sn.nomination_name, s.release_year, ar.name AS artist_name
+                FROM albums_nomination AS sn
+                JOIN albums AS s ON sn.album_id = s.album_id
+                JOIN artists AS ar ON s.artist_id = ar.artist_id\n
+            """
+            if type == 'awards':
+                query += "JOIN albums_awards AS aa ON aa.nomination_id = sn.nomination_id\n"
+
+        else:
+            query = f"""
+                SELECT s.title AS song_name, sn.ceremony_id AS ceremony, sn.nomination_name, s.release_year, a.title AS album_name
+                FROM songs_nomination AS sn
+                JOIN songs AS s ON sn.song_id = s.song_id
+                JOIN albums AS a ON s.album_id = a.album_id\n
+            """
+            if type == 'awards':
+                query += "JOIN songs_awards AS aa ON aa.nomination_id = sn.nomination_id\n"
+
+
+        query += "WHERE "
+        count = 0
+
+        if name != "None":
+            count += 1
+            query += f"s.title LIKE '%{name}%'"
+        if award != "None":
+            if count != 0:
+                query += " AND "
+            count += 1
+            query += f"nomination_name LIKE '%{award}%'"
+        if ceremony != "None":
+            if count != 0:
+                query += " AND "
+            count += 1
+            query += f"ceremony_id = {ceremony}"
+
+    cur.execute(query)
+    return print_table(cur)
+
