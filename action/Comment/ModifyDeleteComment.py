@@ -12,7 +12,7 @@ class ModifyDeleteComment(Action):
         print("ModifyDeleteComment")
         userid = user.get_userid()
 
-        conn.send("The following are your comment record.".encode('utf-8'))
+        conn.send(f"\nHere are your comment records.\n".encode('utf-8'))
         table, print_table = list_your_comment(userid)
         if not table:
             conn.send("No comments found.\n".encode('utf-8'))
@@ -20,30 +20,37 @@ class ModifyDeleteComment(Action):
 
         self.send_table(conn, print_table)
 
-        while True:
-            conn.send("Please enter the No. of the comment you want to select, or 0 to cancel:".encode('utf-8'))
-            try:
-                selection = int(self.read_input(conn, ""))
-                if selection == 0:
-                    conn.send("Operation cancelled.\n".encode('utf-8'))
-                    return
+        conn.send("\n".encode('utf-8'))
+        try:
+            selection = int(self.read_input(conn, "the No. of the comment you want to select, or 0 to cancel"))
+            if selection == 0:
+                conn.send("Operation cancelled.\n".encode('utf-8'))
+                return
 
-                if 1 <= selection <= len(table):
-                    selected_comment = table[selection - 1]
-                    comment_id, performance_name, comment_text = selected_comment[1:]
-                    conn.send(f"You selected:\nPerformance: {performance_name}\nComment: {comment_text}\n".encode('utf-8'))
-                    msg = '[INPUT]What do you want to do?\n' + list_option(self.option) + '---> '
-                    conn.send(msg.encode('utf-8'))
-                    action = get_selection(conn, self.option)
-                    if action == 'Modify':
-                        comment_text = self.read_input(conn, "new comment text")
+            if 1 <= selection <= len(table):
+                selected_comment = table[selection - 1]
+                comment_id, performance_name, comment_text = selected_comment[1:]
+                conn.send(f"\nYou selected:\nPerformance: {performance_name}\nComment: {comment_text}\n\n".encode('utf-8'))
+                msg = '[INPUT]What do you want to do?\n' + list_option(self.option) + '---> '
+                conn.send(msg.encode('utf-8'))
+                action = get_selection(conn, self.option)
+
+                if action == 'Modify':
+                    conn.send("\n".encode('utf-8'))
+                    comment_text = self.read_input(conn, "new comment text")
+                    try:
                         update_comment(comment_id, userid, comment_text)
-                        conn.send(f"[SUCCESS] Comment updated successfully.\n".encode('utf-8'))
-                        conn.send(f"New Comment:\nPerformance: {performance_name}\nComment: {comment_text}\n".encode('utf-8'))
-                    if action == 'Delete':
+                        conn.send(f"\n[SUCCESS] Comment updated successfully.\n".encode('utf-8'))
+                        conn.send(f"New Comment:\nPerformance: {performance_name}\nComment: {comment_text}".encode('utf-8'))
+                    except Exception as e:
+                        conn.send(f"\n[ERROR] Failed to update comment: {e}\n".encode('utf-8'))
+                elif action == 'Delete':
+                    try:
                         delete_comment(comment_id)
-                        conn.send(f"[SUCCESS] Comment deleted successfully.\n".encode('utf-8'))
-                else:
-                    conn.send("[INPUT] Invalid No. Please try again.\n".encode('utf-8'))
-            except ValueError:
-                conn.send("[INPUT] Please enter a valid number.\n".encode('utf-8'))
+                        conn.send(f"\n[SUCCESS] Comment deleted successfully.".encode('utf-8'))
+                    except Exception as e:
+                        conn.send(f"\n[ERROR] Failed to delete comment: {e}".encode('utf-8'))
+            else:
+                conn.send("\n[INPUT] Invalid No. Please try again.".encode('utf-8'))
+        except ValueError:
+            conn.send("\n[INPUT] Please enter a valid number.".encode('utf-8'))

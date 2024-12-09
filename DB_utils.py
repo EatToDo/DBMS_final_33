@@ -12,6 +12,13 @@ cur = None
 db = None
 create_event_lock = Lock()
 
+lock_pool = {}
+
+def get_lock(comment_id):
+    if comment_id not in lock_pool:
+        lock_pool[comment_id] = Lock()
+    return lock_pool[comment_id]
+
 def db_connect():
     exit_code = 0
     try:
@@ -252,7 +259,8 @@ def list_vote_today(user_id):
         """
 
     cur.execute(cmd, [user_id])
-    return print_table(cur)
+    result = cur.fetchone()
+    return print_table(cur), result
 
 def list_validvote_today(user_id):
     cmd = """
@@ -263,7 +271,9 @@ def list_validvote_today(user_id):
         """
 
     cur.execute(cmd, [user_id])
-    return print_table(cur)
+    rows = cur.fetchall()
+    columns = [desc[0] for desc in cur.description]
+    return tabulate(rows, headers=columns, tablefmt="github"), rows
 
 def delete_vote(user_id, ceremony_id):
     cmd = """
@@ -329,7 +339,8 @@ def get_performance_id(ceremony_id, performance_name):
     """
     cur.execute(cmd, [ceremony_id, performance_name])
     results = cur.fetchone()
-
+    print(ceremony_id)
+    print(performance_name)
     return results[0]
 
 def comment(performance_id, userid, comment_text):
@@ -351,6 +362,7 @@ def list_comment(performance_id):
     """
 
     cur.execute(cmd, [performance_id])
+    print(cmd)
     return print_table(cur)
 
 def list_your_comment(user_id):
@@ -362,45 +374,82 @@ def list_your_comment(user_id):
     """
 
     cur.execute(cmd, [user_id])
-    return print_table_with_no(cur)
+    return print_table_with_no(cur, visible_columns=["performance_name", "comment_text"])
 
 def update_comment(comment_id, user_id, comment_text):
-    try:
-        cmd_updata = """
-            UPDATE performance_comments
-            SET status = '已刪除'
-            WHERE comment_id = %s
-            RETURNING performance_id;
-        """
-        cur.execute(cmd_updata, [comment_id])
-        performance_id = cur.fetchone()[0]
+    lock = get_lock(comment_id)
+    with lock:
+        try:
+            cmd_check = """
+                SELECT status, performance_id
+                FROM performance_comments
+                WHERE comment_id = %s
+                FOR UPDATE;
+            """
+            cur.execute(cmd_check, [comment_id])
+            result = cur.fetchone()
 
-        cmd_insert = """
-                INSERT INTO performance_comments(performance_id, user_id, comment_text, comment_timestamp, status)
-                VALUES (%s, %s, %s, NOW(), '有效');
-        """
-        cur.execute(cmd_insert, [performance_id, user_id, comment_text])
-        db.commit()
+            if not result:
+                raise ValueError("Comment does not exist.")
 
-    except Exception as e:
-        db.rollback()
-        print(f"Error occurred: {e}")
-        raise
+            status, performance_id = result
 
-def delete_comment(comment_id):
-    try:
-        cmd = """
+            if status == '已刪除':
+                raise ValueError("Cannot update a deleted comment.")
+
+            cmd_update = """
                 UPDATE performance_comments
                 SET status = '已刪除'
                 WHERE comment_id = %s;
-        """
-        cur.execute(cmd, [comment_id])
-        db.commit()
+            """
+            cur.execute(cmd_update, [comment_id])
 
-    except Exception as e:
-        db.rollback()
-        print(f"Error occurred while deleting comment: {e}")
-        raise
+            cmd_insert = """
+                INSERT INTO performance_comments(performance_id, user_id, comment_text, comment_timestamp, status)
+                VALUES (%s, %s, %s, NOW(), '有效');
+            """
+            cur.execute(cmd_insert, [performance_id, user_id, comment_text])
+            db.commit()
+
+        except Exception as e:
+            db.rollback()
+            print(f"Error occurred during comment update: {e}")
+            raise
+
+def delete_comment(comment_id):
+    lock = get_lock(comment_id)
+    with lock:
+        try:
+            cmd_check = """
+                SELECT status
+                FROM performance_comments
+                WHERE comment_id = %s
+                FOR UPDATE;
+            """
+            cur.execute(cmd_check, [comment_id])
+            result = cur.fetchone()
+
+            if not result:
+                raise ValueError("Comment does not exist.")
+
+            status = result[0]
+
+            if status == '已刪除':
+                print("Comment is already deleted.")
+                return
+
+            cmd_delete = """
+                UPDATE performance_comments
+                SET status = '已刪除'
+                WHERE comment_id = %s;
+            """
+            cur.execute(cmd_delete, [comment_id])
+            db.commit()
+
+        except Exception as e:
+            db.rollback()
+            print(f"Error occurred while deleting comment: {e}")
+            raise
 
 def search(category, type, name, award, ceremony):
     category_1 = category[:-1]
@@ -470,4 +519,19 @@ def search(category, type, name, award, ceremony):
 
     cur.execute(query)
     return print_table(cur)
+
+# def fetch_performance_comments(performance_id):
+#     """
+#     Fetch comments for a specific performance.
+#     """
+#     cmd = """
+#     SELECT comment_id, comment_text, user_id
+#     FROM performance_comments
+#     WHERE performance_id = %s;
+#     """
+#     try:
+#         cur.execute(cmd, [performance_id])
+#         return print_table(cur)
+#     except Exception as e:
+#         raise Exception(f"Failed to fetch comments for performance ID {performance_id}: {e}")
 

@@ -14,7 +14,7 @@ class CommentManage(Action):
     def exec(self, conn, user):
         print("Comment")
 
-
+        conn.send("----------------------------------------\n".encode('utf-8'))
         msg = '[INPUT]What do you want to do?\n' + list_option(self.options) + '---> '
         conn.send(msg.encode('utf-8'))
 

@@ -13,7 +13,7 @@ class User(Role):
         self.user_action =  [
                                 VoteManage("Add/Modify/Delete/List Vote"),
                                 CommentManage("Add/Modify/Delete/List Comment"),
-                                CheckNominatedAwarded("Search some details'"),
+                                CheckNominatedAwarded("Search some details"),
                                 ModifyUserInfo("Modify User Info"),
                                 Logout("Logout"),
                                 Exit("Leave System")

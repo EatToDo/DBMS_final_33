@@ -8,8 +8,8 @@ class DeleteYourVote(Action):
         print("DeleteYourVote")
         ceremony_id = get_max_ceremony_id()
         userid = user.get_userid()
-        conn.send(f"\nBelow are your voting record today.\n".encode('utf-8'))
-        table_vote = list_validvote_today(userid)
+        conn.send(f"\nHere are your voting records today.\n".encode('utf-8'))
+        table_vote, result = list_validvote_today(userid)
         # if not table_vote:
         #     conn.send("You have no valid votes for today.\n".encode('utf-8'))
         #     return

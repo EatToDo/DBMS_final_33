@@ -12,16 +12,16 @@ class ListHistoryVote(Action):
     def exec(self, conn, user):
         print("ListHistoryVote")
         userid = user.get_userid()
-
+        conn.send("----------------------------------------\n".encode('utf-8'))
         msg = '[INPUT]What do you want to search?\n' + list_option(self.action_opt) + '---> '
         conn.send(msg.encode('utf-8'))
         action = get_selection(conn, self.action_opt)
 
         if action == 'All your votes':
-            conn.send(f"\nBelow are your voting record.\n".encode('utf-8'))
+            conn.send(f"\nHere are your voting records.\n".encode('utf-8'))
             table_vote, print_table = list_vote(userid)
             if not table_vote:
-                conn.send("No comments found.\n".encode('utf-8'))
+                conn.send("No voting records found.\n".encode('utf-8'))
                 return
             self.send_table(conn, print_table)
             return
