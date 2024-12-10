@@ -1,5 +1,5 @@
 from ..Action import Action
-from DB_utils import fetch_all_ceremony, fetch_performance_ceremony, get_performance_id, list_comment, list_your_comment, fetch_performance_comments
+from DB_utils import fetch_all_ceremony, fetch_performance_ceremony, get_performance_id, list_comment, list_your_comment
 from utils import list_option, get_selection
 
 class ListComment(Action):
@@ -54,7 +54,7 @@ class ListComment(Action):
 
             ####### 根據前面選擇得到表演的ID #################################
             performance_id = get_performance_id(ceremony_id, performance_name)
-            table_comment = fetch_performance_comments(performance_id)
+            table_comment = list_comment(performance_id)
             conn.send(f"\nHere are all comment records.\n".encode('utf-8'))
             self.send_table(conn, table_comment)
             return

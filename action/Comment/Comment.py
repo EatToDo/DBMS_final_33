@@ -42,4 +42,3 @@ class Comment(Action):
         comment(performance_id, userid, c)
         conn.send(f"\nYour comment: {c} recorded successfully!".encode('utf-8'))
         return
-

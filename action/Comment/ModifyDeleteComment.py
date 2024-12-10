@@ -1,5 +1,5 @@
 from ..Action import Action
-from DB_utils import list_your_comment, update_comment, delete_comment
+from DB_utils import list_your_comment, update_comment, delete_comment, get_lock
 from utils import list_option, get_selection
 from tabulate import tabulate
 
@@ -35,21 +35,29 @@ class ModifyDeleteComment(Action):
                 conn.send(msg.encode('utf-8'))
                 action = get_selection(conn, self.option)
 
-                if action == 'Modify':
-                    conn.send("\n".encode('utf-8'))
-                    comment_text = self.read_input(conn, "new comment text")
-                    try:
-                        update_comment(comment_id, userid, comment_text)
-                        conn.send(f"\n[SUCCESS] Comment updated successfully.\n".encode('utf-8'))
-                        conn.send(f"New Comment:\nPerformance: {performance_name}\nComment: {comment_text}".encode('utf-8'))
-                    except Exception as e:
-                        conn.send(f"\n[ERROR] Failed to update comment: {e}\n".encode('utf-8'))
-                elif action == 'Delete':
-                    try:
-                        delete_comment(comment_id)
-                        conn.send(f"\n[SUCCESS] Comment deleted successfully.".encode('utf-8'))
-                    except Exception as e:
-                        conn.send(f"\n[ERROR] Failed to delete comment: {e}".encode('utf-8'))
+                lock = get_lock(comment_id)
+                if not lock.acquire(blocking=False):
+                    conn.send("\n[INFO] Another operation is in progress on this comment. Please wait...\n".encode('utf-8'))
+                    lock.acquire()
+
+                try:
+                    if action == 'Modify':
+                        conn.send("\n".encode('utf-8'))
+                        comment_text = self.read_input(conn, "new comment text")
+                        try:
+                            update_comment(comment_id, userid, comment_text)
+                            conn.send(f"\n[SUCCESS] Comment updated successfully.\n".encode('utf-8'))
+                            conn.send(f"New Comment:\nPerformance: {performance_name}\nComment: {comment_text}".encode('utf-8'))
+                        except Exception as e:
+                            conn.send(f"\n[ERROR] Failed to update comment: {e}\n".encode('utf-8'))
+                    elif action == 'Delete':
+                        try:
+                            delete_comment(comment_id)
+                            conn.send(f"\n[SUCCESS] Comment deleted successfully.\n".encode('utf-8'))
+                        except Exception as e:
+                            conn.send(f"\n[ERROR] Failed to delete comment: {e}\n".encode('utf-8'))
+                finally:
+                    lock.release()
             else:
                 conn.send("\n[INPUT] Invalid No. Please try again.".encode('utf-8'))
         except ValueError:
